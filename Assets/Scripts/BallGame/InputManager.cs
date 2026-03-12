@@ -1,16 +1,18 @@
 using UnityEngine;
-
+using UnityEngine.InputSystem;
 public class InputManager : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    public static InputManager Instance { get; private set; }
+    public static Inputs inputMap { get; private set; }
+    private void Awake()
     {
-        
+        Instance = this;
+        inputMap = new Inputs();
+        inputMap.Enable();
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Start()
     {
-        
+        inputMap.Ball.Enable();
     }
 }
