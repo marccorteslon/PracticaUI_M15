@@ -1,17 +1,27 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(BallController))]
 public class BallInput : MonoBehaviour
 {
-    BallController controller;
+    private BallController controller;
+
+    [SerializeField] private VirtualJoystick moveJoystick;
+
     private void Start()
     {
         controller = GetComponent<BallController>();
     }
-    void Update()
-    {
 
+    private void Update()
+    {
+        if (controller == null || moveJoystick == null) return;
+
+        controller.Move(moveJoystick.InputDirection);
+    }
+
+    public void Jump()
+    {
+        if (controller == null) return;
+        controller.Jump();
     }
 }
