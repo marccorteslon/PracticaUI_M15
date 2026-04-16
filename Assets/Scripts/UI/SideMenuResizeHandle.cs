@@ -20,7 +20,10 @@ public class SideMenuResizeHandle : MonoBehaviour, IBeginDragHandler, IDragHandl
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (menu != null && !menu.EstaAbierto)
+        if (menu == null)
+            return;
+
+        if (!menu.EstaAbierto)
             menu.AbrirMenu();
     }
 
@@ -30,17 +33,14 @@ public class SideMenuResizeHandle : MonoBehaviour, IBeginDragHandler, IDragHandl
             return;
 
         Vector2 localPoint;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                panelRect,
+                eventData.position,
+                uiCamera,
+                out localPoint))
+            return;
 
-        // Convertimos la posición del ratón/puntero al espacio local del panel
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            panelRect.parent as RectTransform,
-            eventData.position,
-            uiCamera,
-            out localPoint))
-        {
-            // Como el panel está anclado a la izquierda, la X local sirve como ancho deseado
-            float nuevoAncho = Mathf.Max(0f, localPoint.x);
-            menu.SetWidthFromDrag(nuevoAncho);
-        }
+        float nuevoAncho = localPoint.x;
+        menu.SetWidthFromDrag(nuevoAncho);
     }
 }

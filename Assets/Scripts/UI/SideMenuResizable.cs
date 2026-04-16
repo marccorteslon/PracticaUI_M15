@@ -1,29 +1,34 @@
+using System;
 using UnityEngine;
 
 public class SideMenuResizable : MonoBehaviour
 {
     [Header("Referencias")]
     [SerializeField] private RectTransform panelRect;
-    [SerializeField] private RectTransform toggleButtonRect;
+    [SerializeField] private RectTransform resizeHandleRect;
 
     [Header("Tamaños")]
     [SerializeField] private float anchoCerrado = 0f;
-    [SerializeField] private float anchoAbiertoPorDefecto = 300f;
-    [SerializeField] private float anchoMinimo = 180f;
+    [SerializeField] private float anchoAbiertoPorDefecto = 320f;
+    [SerializeField] private float anchoMinimo = 260f;
     [SerializeField] private float anchoMaximo = 600f;
 
     [Header("Animación")]
-    [SerializeField] private float velocidad = 10f;
+    [SerializeField] private float velocidadAnimacion = 12f;
     [SerializeField] private bool empezarAbierto = false;
 
-    private float anchoObjetivo;
     private float anchoActual;
+    private float anchoObjetivo;
     private float ultimoAnchoAbierto;
     private bool abierto;
 
+    public bool EstaAbierto => abierto;
+    public float AnchoActual => anchoActual;
     public float AnchoMinimo => anchoMinimo;
     public float AnchoMaximo => anchoMaximo;
-    public bool EstaAbierto => abierto;
+
+    public Action OnWidthChanged;
+    public Action<bool> OnMenuStateChanged;
 
     private void Awake()
     {
@@ -36,18 +41,21 @@ public class SideMenuResizable : MonoBehaviour
         anchoActual = abierto ? ultimoAnchoAbierto : anchoCerrado;
         anchoObjetivo = anchoActual;
 
-        AplicarAncho(anchoActual);
+        AplicarEstado(true);
+        OnMenuStateChanged?.Invoke(abierto);
     }
 
     private void Update()
     {
-        anchoActual = Mathf.Lerp(anchoActual, anchoObjetivo, velocidad * Time.deltaTime);
+        float anchoAnterior = anchoActual;
 
-        // Evita vibración al llegar al final
+        anchoActual = Mathf.Lerp(anchoActual, anchoObjetivo, velocidadAnimacion * Time.unscaledDeltaTime);
+
         if (Mathf.Abs(anchoActual - anchoObjetivo) < 0.1f)
             anchoActual = anchoObjetivo;
 
-        AplicarAncho(anchoActual);
+        bool changed = Mathf.Abs(anchoActual - anchoAnterior) > 0.01f;
+        AplicarEstado(changed);
     }
 
     public void ToggleMenu()
@@ -62,25 +70,14 @@ public class SideMenuResizable : MonoBehaviour
     {
         abierto = true;
         anchoObjetivo = ultimoAnchoAbierto;
+        OnMenuStateChanged?.Invoke(true);
     }
 
     public void CerrarMenu()
     {
         abierto = false;
         anchoObjetivo = anchoCerrado;
-    }
-
-    public void SetWidthInstant(float nuevoAncho)
-    {
-        nuevoAncho = Mathf.Clamp(nuevoAncho, anchoMinimo, anchoMaximo);
-
-        ultimoAnchoAbierto = nuevoAncho;
-        abierto = nuevoAncho > anchoCerrado + 0.01f;
-
-        anchoActual = nuevoAncho;
-        anchoObjetivo = nuevoAncho;
-
-        AplicarAncho(anchoActual);
+        OnMenuStateChanged?.Invoke(false);
     }
 
     public void SetWidthFromDrag(float nuevoAncho)
@@ -88,19 +85,42 @@ public class SideMenuResizable : MonoBehaviour
         nuevoAncho = Mathf.Clamp(nuevoAncho, anchoMinimo, anchoMaximo);
 
         ultimoAnchoAbierto = nuevoAncho;
-        abierto = true;
         anchoObjetivo = nuevoAncho;
+
+        if (!abierto)
+        {
+            abierto = true;
+            OnMenuStateChanged?.Invoke(true);
+        }
     }
 
-    private void AplicarAncho(float ancho)
+    public void SetWidthInstant(float nuevoAncho)
     {
-        panelRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, ancho);
+        nuevoAncho = Mathf.Clamp(nuevoAncho, anchoMinimo, anchoMaximo);
 
-        // Coloca el botón justo fuera del borde derecho del panel
-        if (toggleButtonRect != null)
+        ultimoAnchoAbierto = nuevoAncho;
+        anchoActual = nuevoAncho;
+        anchoObjetivo = nuevoAncho;
+        abierto = true;
+
+        AplicarEstado(true);
+        OnMenuStateChanged?.Invoke(true);
+    }
+
+    private void AplicarEstado(bool notify)
+    {
+        if (panelRect != null)
+            panelRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, anchoActual);
+
+        if (resizeHandleRect != null)
         {
-            float mitadBoton = toggleButtonRect.rect.width * 0.5f;
-            toggleButtonRect.anchoredPosition = new Vector2(mitadBoton, 0f);
+            resizeHandleRect.anchorMin = new Vector2(1f, 0.5f);
+            resizeHandleRect.anchorMax = new Vector2(1f, 0.5f);
+            resizeHandleRect.pivot = new Vector2(0.5f, 0.5f);
+            resizeHandleRect.anchoredPosition = new Vector2(0f, 0f);
         }
+
+        if (notify)
+            OnWidthChanged?.Invoke();
     }
 }
